@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+
+  rabbitmq:
+    image: rabbitmq:3-alpine
+    container_name: 'rabbitmq'
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+      - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=user
+      - RABBITMQ_DEFAULT_PASS=password
+    healthcheck:
+        test: ["CMD", "wget", "http://127.0.0.1:15672"]
+        interval: "10s"
+        timeout: "3s"
+        start_period: "5s"
+        retries: 3
+
+  market-data:
+    build: 
+      context: ./components/market-data
+      dockerfile: Dockerfile.market-data.development
+    container_name: 'market-data'
+    volumes:
+      - ./components/market-data:/app
+    working_dir: /app
+    links:
+      - rabbitmq
+    depends_on:
+      - rabbitmq
+    restart: on-failure
+    environment:
+      - "NOMICS_API_KEY=xxxx"
