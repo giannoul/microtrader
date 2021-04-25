@@ -6,6 +6,10 @@ import (
 	"log"
 )
 
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+}
+
 // Rate is the common message structure for the exchange rates
 type Rate struct {
 	Source    string
@@ -15,8 +19,7 @@ type Rate struct {
 }
 
 // Store will store the message to the queue
-func (r *Rate) Store() error {
-	log.Printf("%#v", r)
+func (r *Rate) Store(queue *queue.Queue) error {
 	msgBytes := []byte(fmt.Sprintf("%v", r))
 	queue.Enqueue(msgBytes)
 	return nil

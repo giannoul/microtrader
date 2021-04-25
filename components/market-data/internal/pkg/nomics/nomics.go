@@ -10,15 +10,41 @@ import (
 	"strconv"
 
 	exrate "github.com/giannoul/microtrader/internal/pkg/messages"
+	queue "github.com/giannoul/microtrader/internal/pkg/rabbitmq"
 )
 
+func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+}
+
 // Nomics the struct for this source
-type Nomics struct{}
+type Nomics struct {
+	qname string
+	q     *queue.Queue
+}
 
 type nomicsRate struct {
 	Currency  string `json:"currency"`
 	Rate      string `json:"rate"`
 	Timestamp string `json:"timestamp"`
+}
+
+// SetupQueue implements the interface's RatesSource function
+func (n *Nomics) SetupQueue(name string) error {
+	rabbitqueue := queue.Queue{}
+	initialized, err := rabbitqueue.Create(name)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	n.q = initialized
+	return nil
+}
+
+// TeardownQueue implements the interface's RatesSource function
+func (n Nomics) TeardownQueue() error {
+	n.q.Teardown()
+	return nil
 }
 
 // GetExchangeRates implements the GetExchangeRates interface from source
@@ -47,7 +73,7 @@ func (n Nomics) StoreExchangeRates(data []byte) error {
 	}
 	for _, r := range rates {
 		ss := nomicsRateMapper(r)
-		ss.Store()
+		ss.Store(n.q)
 	}
 	return nil
 }
